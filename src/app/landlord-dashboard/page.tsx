@@ -1,8 +1,9 @@
 import React from 'react'
+import LandlordDashboard from '@/features/LandLordDashboard/LandlordDashboard'
 
 const page = () => {
   return (
-    <div>page</div>
+    <LandlordDashboard />
   )
 }
 
