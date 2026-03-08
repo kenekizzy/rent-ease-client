@@ -1,3 +1,4 @@
+"use client"
 import NavBar from '../../components/general/NavBar';
 import { Plus, Building2, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
