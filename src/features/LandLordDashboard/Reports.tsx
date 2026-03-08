@@ -102,7 +102,7 @@ const Reports = () => {
                                 tickLine={false}
                                 tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                             />
-                            <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "Revenue"]} />
+                            <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString()}`, "Revenue"]} />
                             <Bar dataKey="revenue" fill="#4f46e5" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>

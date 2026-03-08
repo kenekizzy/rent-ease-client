@@ -135,7 +135,7 @@ const LandlordDashboard = () => {
                                 tickLine={false}
                                 tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                             />
-                            <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "Income"]} />
+                            <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString()}`, "Income"]} />
                             <Line
                                 type="monotone"
                                 dataKey="income"
@@ -182,10 +182,10 @@ const LandlordDashboard = () => {
                         <div key={i} className="flex items-start gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                             <div
                                 className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${a.icon === "tenant"
-                                        ? "bg-indigo-50"
-                                        : a.icon === "payment"
-                                            ? "bg-blue-50"
-                                            : "bg-orange-50"
+                                    ? "bg-indigo-50"
+                                    : a.icon === "payment"
+                                        ? "bg-blue-50"
+                                        : "bg-orange-50"
                                     }`}
                             >
                                 {a.icon === "tenant" ? (
