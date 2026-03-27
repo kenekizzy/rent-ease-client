@@ -6,6 +6,7 @@ import { create } from 'zustand';
 export type ModalType =
     | 'createProperty'
     | 'editProperty'
+    | 'viewProperty'
     | 'createComplaint'
     | 'viewLease'
     | null;

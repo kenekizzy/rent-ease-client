@@ -14,25 +14,39 @@ export interface User {
 export interface Property {
   id: string;
   landlordId: string;
-  address: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
   state: string;
   zipCode: string;
+  propertyType: 'apartment' | 'house' | 'condo' | 'studio' | 'townhouse' | 'commercial';
+  units?: string[];
   rentAmount: number;
-  description?: string;
-  status: 'available' | 'occupied' | 'maintenance';
-  currentLease?: Lease;
+  bedrooms?: number;
+  bathrooms?: number;
+  status: 'available' | 'partially_occupied' | 'occupied' | 'maintenance';
+  leases?: Lease[];
+  createdAt?: string;
 }
 
 export interface Lease {
   id: string;
   propertyId: string;
-  tenantId: string;
+  tenantId?: string;
+  tenantEmail?: string;
+  inviteToken?: string;
+  unit?: string;
+  landlordId: string;
   startDate: Date;
   endDate: Date;
-  rentAmount: number;
+  annualRent: number;
   securityDeposit: number;
-  status: 'active' | 'expired' | 'terminated';
+  annualDueDate?: Date;
+  termsText?: string;
+  status: 'active' | 'expired' | 'terminated' | 'pending_acceptance';
+  property?: Property;
+  tenant?: { id: string; firstName: string; lastName: string; email: string; };
+  createdAt?: string;
 }
 
 export interface Payment {

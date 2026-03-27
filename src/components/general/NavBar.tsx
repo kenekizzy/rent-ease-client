@@ -2,6 +2,7 @@
 
 import { Bell, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { useAuthStore } from "@/stores/auth";
 
 interface NavBarProps {
   title: string;
@@ -9,6 +10,7 @@ interface NavBarProps {
 }
 
 const NavBar = ({ title, subtitle }: NavBarProps) => {
+  const { user } = useAuthStore()
   return (
     <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 fixed top-0 right-0 left-56 z-20">
       <div>
@@ -24,13 +26,12 @@ const NavBar = ({ title, subtitle }: NavBarProps) => {
         </Link>
         <div className="flex items-center gap-2 cursor-pointer">
           <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-semibold text-xs">
-            JD
+            {user?.firstName?.charAt(0) + user?.lastName.charAt(0)}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900 leading-none">John Doe</p>
+            <p className="text-sm font-semibold text-gray-900 leading-none">{user?.firstName + " " + user?.lastName}</p>
             <p className="text-xs text-gray-400">Landlord</p>
           </div>
-          <ChevronDown className="w-4 h-4 text-gray-400" />
         </div>
       </div>
     </header>

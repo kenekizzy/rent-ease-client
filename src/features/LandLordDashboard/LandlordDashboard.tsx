@@ -21,6 +21,7 @@ import {
     Cell,
     Legend,
 } from "recharts";
+import { useAuthStore } from '@/stores/auth';
 
 const incomeData = [
     { month: "Jan", income: 40000 },
@@ -97,9 +98,10 @@ const statCards = [
 ];
 
 const LandlordDashboard = () => {
+    const { user } = useAuthStore();
     return (
         <>
-            <NavBar title="Dashboard" subtitle="Welcome back, John" />
+            <NavBar title="Dashboard" subtitle={`Welcome back, ${user?.firstName}`} />
             {/* Stat Cards */}
             <div className="grid grid-cols-4 gap-4 mb-6">
                 {statCards.map((card) => {

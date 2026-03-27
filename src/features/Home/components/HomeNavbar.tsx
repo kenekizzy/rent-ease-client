@@ -9,9 +9,7 @@ const HomeNavbar = () => {
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100">
             <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                        <Building2 className="w-4 h-4 text-white" />
-                    </div>
+                    <div className="w-10 h-10 bg-indigo-200 rounded-xl flex items-center justify-center text-xl shadow-lg group-hover:scale-110 transition-transform">🏠</div>
                     <span className="font-bold text-gray-900 text-lg">RentEasy</span>
                 </div>
 

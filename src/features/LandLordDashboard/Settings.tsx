@@ -167,7 +167,7 @@ const Settings = () => {
                                                 <FormItem>
                                                     <FormLabel>Email Address</FormLabel>
                                                     <FormControl>
-                                                        <Input type="email" {...field} />
+                                                        <Input type="email" {...field} disabled/>
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -189,10 +189,10 @@ const Settings = () => {
                                         />
 
                                         <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
-                                            <Button type="button" variant="outline" onClick={() => form.reset()}>
+                                            <Button type="button" className='cursor-pointer' variant="outline" onClick={() => form.reset()}>
                                                 Reset
                                             </Button>
-                                            <Button type="submit" disabled={isSaving}>
+                                            <Button type="submit" className='cursor-pointer' disabled={isSaving}>
                                                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Save Changes
                                             </Button>
