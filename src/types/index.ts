@@ -7,24 +7,67 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  avatar?: string | null;
   role: 'landlord' | 'tenant';
   createdAt: Date;
+}
+
+export interface PropertyUnit {
+  id: string;
+  propertyId: string;
+  leaseId?: string;
+  tenantId?: string;
+  name: string;
+  unitType?: 'self_contain' | 'mini_flat' | 'two_bedroom' | 'three_bedroom' | 'four_bedroom' | 'five_bedroom';
+  bedrooms?: number;
+  bathrooms?: number;
+  areaSqm?: number;
+  floorNumber?: number;
+  rentAmount?: number;
+  status: 'available' | 'partially_occupied' | 'occupied' | 'maintenance';
+  isActive: boolean;
+  notes?: string;
+  activeLease?: Lease;
 }
 
 export interface Property {
   id: string;
   landlordId: string;
+  tenantId?: string;
+  name: string;
+  description?: string;
   addressLine1: string;
   addressLine2?: string;
   city: string;
   state: string;
   zipCode: string;
-  propertyType: 'apartment' | 'house' | 'condo' | 'studio' | 'townhouse' | 'commercial';
-  units?: string[];
-  rentAmount: number;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  propertyType: 'apartment' | 'house' | 'shop' | 'studio' | 'flat' | 'commercial';
+  condition?: 'new' | 'renovated' | 'old';
   bedrooms?: number;
   bathrooms?: number;
+  rentAmount?: number;
+  rentDurationInMonths?: number;
+  additionalFees?: {
+    serviceCharge?: number;
+    cautionFee?: number;
+    agencyFee?: number;
+    legalFee?: number;
+  };
+  utilities?: {
+    electricity?: 'prepaid' | 'postpaid' | 'none';
+    water?: 'borehole' | 'well' | 'none';
+    wasteManagement?: boolean;
+    security?: boolean;
+  };
+  amenities?: string[];
+  images?: string[];
   status: 'available' | 'partially_occupied' | 'occupied' | 'maintenance';
+  isListed?: boolean;
+  publishedAt?: string;
+  units?: PropertyUnit[];
   leases?: Lease[];
   createdAt?: string;
 }
@@ -35,10 +78,11 @@ export interface Lease {
   tenantId?: string;
   tenantEmail?: string;
   inviteToken?: string;
-  unit?: string;
+  unitId?: string;
+  unit?: PropertyUnit;
   landlordId: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: string;
+  endDate: string;
   annualRent: number;
   securityDeposit: number;
   annualDueDate?: Date;

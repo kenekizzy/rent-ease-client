@@ -1,104 +1,116 @@
-"use client"
+'use client'
 
-import React from 'react'
-import NavBar from '../../components/general/NavBar';
-import {
-    Building2,
-    CheckCircle2,
-    DollarSign,
-    AlertTriangle,
-} from "lucide-react";
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell,
-    Legend,
-} from "recharts";
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/services/api';
+import { Loader2, Plus, Building2, CheckCircle2, DollarSign, AlertTriangle } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { useUIStore } from '@/stores/ui-store';
 import { useAuthStore } from '@/stores/auth';
+import NavBar from '@/components/general/NavBar';
 
-const incomeData = [
-    { month: "Jan", income: 40000 },
-    { month: "Feb", income: 44000 },
-    { month: "Mar", income: 42000 },
-    { month: "Apr", income: 45500 },
-    { month: "May", income: 43000 },
-    { month: "Jun", income: 48500 },
-];
-
-const occupancyData = [
-    { name: "Occupied", value: 22 },
-    { name: "Available", value: 2 },
-];
-
-const activities = [
-    {
-        icon: "tenant",
-        title: "New tenant assigned",
-        desc: "Sarah Johnson moved into Apartment 3B",
-        time: "2 hours ago",
-    },
-    {
-        icon: "payment",
-        title: "Payment received",
-        desc: "Michael Chen paid $2,100 for Unit 5A",
-        time: "5 hours ago",
-    },
-    {
-        icon: "complaint",
-        title: "Complaint submitted",
-        desc: "Emma Davis reported heating issue in Unit 2C",
-        time: "1 day ago",
-    },
-];
-
-const statCards = [
-    {
-        label: "Total Properties",
-        value: "24",
-        badge: "+12%",
-        badgeColor: "text-indigo-600 bg-indigo-50",
-        icon: Building2,
-        iconBg: "bg-indigo-50",
-        iconColor: "text-indigo-600",
-    },
-    {
-        label: "Occupied Units",
-        value: "22 / 24",
-        badge: "92%",
-        badgeColor: "text-green-600 bg-green-50",
-        icon: CheckCircle2,
-        iconBg: "bg-green-50",
-        iconColor: "text-green-600",
-    },
-    {
-        label: "Monthly Income",
-        value: "$48,500",
-        badge: "+8%",
-        badgeColor: "text-blue-600 bg-blue-50",
-        icon: DollarSign,
-        iconBg: "bg-blue-50",
-        iconColor: "text-blue-600",
-    },
-    {
-        label: "Outstanding Payments",
-        value: "$4,200",
-        badge: "3 Late",
-        badgeColor: "text-orange-600 bg-orange-50",
-        icon: AlertTriangle,
-        iconBg: "bg-orange-50",
-        iconColor: "text-orange-500",
-    },
-];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const LandlordDashboard = () => {
     const { user } = useAuthStore();
+    const { openModal } = useUIStore();
+
+    // Fetch summary stats
+    const { data: summary, isLoading: isSummaryLoading } = useQuery({
+        queryKey: ['landlord-summary'],
+        queryFn: () => apiClient.get<any>('/stats/landlord-summary'),
+    });
+
+    // Fetch recent activities
+    const { data: activities, isLoading: isActivitiesLoading } = useQuery({
+        queryKey: ['recent-activities'],
+        queryFn: () => apiClient.get<any[]>('/activities/recent'),
+    });
+
+    const currentYear = new Date().getFullYear();
+
+    // Fetch payment report for income chart
+    const { data: report, isLoading: isReportLoading } = useQuery({
+        queryKey: ['income-report', currentYear],
+        queryFn: () => apiClient.get<any>(`/payments/report?year=${currentYear}`),
+    });
+
+    if (isSummaryLoading || isActivitiesLoading) {
+        return (
+            <div className="flex h-[400px] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            </div>
+        );
+    }
+
+    const statCards = [
+        {
+            label: "Total Properties",
+            value: summary?.totalProperties || 0,
+            badge: "+12%",
+            badgeColor: "text-indigo-600 bg-indigo-50",
+            icon: Building2,
+            iconBg: "bg-indigo-50",
+            iconColor: "text-indigo-600",
+        },
+        {
+            label: "Occupied Units",
+            value: `${summary?.occupiedUnits || 0} / ${summary?.totalUnits || 0}`,
+            badge: `${summary?.occupancyRate || 0}%`,
+            badgeColor: (summary?.occupancyRate || 0) > 80 ? "text-green-600 bg-green-50" : "text-yellow-600 bg-yellow-50",
+            icon: CheckCircle2,
+            iconBg: "bg-green-50",
+            iconColor: "text-green-600",
+        },
+        {
+            label: "Monthly Income",
+            value: `₦${Number(summary?.monthlyIncome || 0).toLocaleString()}`,
+            badge: `${summary?.incomeGrowth || 0}%`,
+            badgeColor: (summary?.incomeGrowth || 0) >= 0 ? "text-blue-600 bg-blue-50" : "text-red-600 bg-red-50",
+            icon: DollarSign,
+            iconBg: "bg-blue-50",
+            iconColor: "text-blue-600",
+        },
+        {
+            label: "Outstanding Payments",
+            value: `₦${Number(summary?.outstandingAmount || 0).toLocaleString()}`,
+            badge: `${summary?.outstandingPayments || 0} Late`,
+            badgeColor: (summary?.outstandingPayments || 0) > 0 ? "text-orange-600 bg-orange-50" : "text-green-600 bg-green-50",
+            icon: AlertTriangle,
+            iconBg: "bg-orange-50",
+            iconColor: "text-orange-500",
+        },
+    ];
+
+    const incomeData = MONTHS.map((month, i) => ({
+        month,
+        income: report?.monthlyBreakdown?.[i] ?? 0,
+    }));
+
+    const occupancyData = [
+        { name: "Occupied", value: summary?.occupiedUnits || 0 },
+        { name: "Available", value: (summary?.totalUnits || 0) - (summary?.occupiedUnits || 0) },
+    ];
+
+    if (!summary?.totalProperties) {
+        return (
+            <>
+                <NavBar title="Dashboard" subtitle={`Welcome back, ${user?.firstName}`} />
+                <div className="flex flex-col items-center justify-center h-[500px] bg-white rounded-2xl border border-dashed border-gray-200 mt-6 text-center px-4">
+                    <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+                        <Building2 className="w-8 h-8 text-indigo-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">No properties found</h2>
+                    <p className="text-gray-500 max-w-sm mb-6">You haven't added any properties yet. Start by adding your first property to track income and manage tenants.</p>
+                    <Button onClick={() => openModal('createProperty')} className="gap-2">
+                        <Plus className="w-4 h-4" />
+                        Add First Property
+                    </Button>
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <NavBar title="Dashboard" subtitle={`Welcome back, ${user?.firstName}`} />
@@ -127,6 +139,15 @@ const LandlordDashboard = () => {
             <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="col-span-2 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                     <h2 className="text-base font-bold text-gray-900 mb-4">Monthly Income</h2>
+                    {isReportLoading ? (
+                        <div className="h-[220px] flex flex-col gap-3 animate-pulse">
+                            <div className="flex items-end gap-2 h-full px-2">
+                                {MONTHS.map((m) => (
+                                    <div key={m} className="flex-1 bg-gray-100 rounded" style={{ height: `${Math.random() * 60 + 20}%` }} />
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
                     <ResponsiveContainer width="100%" height={220}>
                         <LineChart data={incomeData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -135,9 +156,9 @@ const LandlordDashboard = () => {
                                 tick={{ fontSize: 12, fill: "#9ca3af" }}
                                 axisLine={false}
                                 tickLine={false}
-                                tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                                tickFormatter={(v) => `₦${(v / 1000).toFixed(0)}k`}
                             />
-                            <Tooltip formatter={(v: any) => [`$${Number(v).toLocaleString()}`, "Income"]} />
+                            <Tooltip formatter={(v: any) => [`₦${Number(v).toLocaleString()}`, "Income"]} />
                             <Line
                                 type="monotone"
                                 dataKey="income"
@@ -148,6 +169,7 @@ const LandlordDashboard = () => {
                             />
                         </LineChart>
                     </ResponsiveContainer>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -180,7 +202,7 @@ const LandlordDashboard = () => {
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                 <h2 className="text-base font-bold text-gray-900 mb-4">Recent Activities</h2>
                 <div className="space-y-4">
-                    {activities.map((a, i) => (
+                    {activities && activities.length > 0 ? activities.map((a, i) => (
                         <div key={i} className="flex items-start gap-3 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
                             <div
                                 className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${a.icon === "tenant"
@@ -201,14 +223,19 @@ const LandlordDashboard = () => {
                             <div>
                                 <p className="text-sm font-semibold text-gray-900">{a.title}</p>
                                 <p className="text-sm text-gray-500">{a.desc}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">{a.time}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{new Date(a.time).toLocaleString()}</p>
                             </div>
                         </div>
-                    ))}
+                    )) : (
+                        <div className="py-8 text-center text-gray-400">
+                            No recent activities to show.
+                        </div>
+                    )}
                 </div>
             </div>
         </>
     )
 }
+
 
 export default LandlordDashboard

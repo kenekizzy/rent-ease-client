@@ -12,18 +12,23 @@ import {
   LogOut,
   ChevronDown,
   Building2,
+  Home,
 } from "lucide-react";
+import { useAuthStore } from "@/stores/auth";
 
 const navItems = [
   { href: "/tenant-dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/tenant-dashboard/rent-payments", icon: CreditCard, label: "Rent Payments" },
-  { href: "/tenant-dashboard/complaints", icon: AlertCircle, label: "Complaints" },
+  { href: "/tenant-dashboard/leases", icon: Home, label: "My Leases" },
+  { href: "/tenant-dashboard/rent-payments", icon: CreditCard, label: "Payments" },
+  { href: "/tenant-dashboard/complaints", icon: AlertCircle, label: "Maintenance" },
   { href: "/tenant-dashboard/documents", icon: FileText, label: "Documents" },
-  { href: "/tenant-dashboard/notifications", icon: Bell, label: "Notifications", badge: 3 },
+  { href: "/tenant-dashboard/notifications", icon: Bell, label: "Inbox", badge: 3 },
   { href: "/tenant-dashboard/settings", icon: Settings, label: "Settings" },
 ];
+
 const Sidebar = () => {
     const pathname = usePathname();
+    const { user } = useAuthStore()
   return (
     <aside className="w-56 bg-white border-r border-gray-100 flex flex-col h-screen fixed left-0 top-0 z-30">
       {/* Logo */}
@@ -51,7 +56,7 @@ const Sidebar = () => {
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 overflow-y-auto">
         {navItems.map(({ href, icon: Icon, label, badge }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
+          const active = pathname === href;
           return (
             <Link
               key={href}
@@ -77,11 +82,11 @@ const Sidebar = () => {
       {/* User */}
       <div className="px-3 py-4 border-t border-gray-100 flex items-center gap-3">
         <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-semibold text-xs">
-          JD
+          {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">John Doe</p>
-          <p className="text-xs text-gray-400 truncate">john@example.com</p>
+          <p className="text-sm font-medium text-gray-900 truncate">{user?.firstName + " " + user?.lastName}</p>
+          <p className="text-xs text-gray-400 truncate">{user?.role}</p>
         </div>
         <button className="text-gray-400 hover:text-gray-600 transition-colors">
           <LogOut className="w-4 h-4" />

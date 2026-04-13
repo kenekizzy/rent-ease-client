@@ -18,10 +18,6 @@ interface ModalProps {
     className?: string;
 }
 
-/**
- * Reusable Modal wrapper around shadcn/ui Dialog.
- * Syncs with the global UI store to handle opening/closing.
- */
 export function Modal({ type, title, description, children, className }: ModalProps) {
     const { activeModal, closeModal } = useUIStore();
 

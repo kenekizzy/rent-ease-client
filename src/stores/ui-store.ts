@@ -1,14 +1,15 @@
 import { create } from 'zustand';
 
-/**
- * Modal types available in the application
- */
 export type ModalType =
     | 'createProperty'
     | 'editProperty'
     | 'viewProperty'
     | 'createComplaint'
     | 'viewLease'
+    | 'deleteProperty'
+    | 'submitPaymentProof'
+    | 'createDocument'
+    | 'viewReceipt'
     | null;
 
 interface UIState {

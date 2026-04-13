@@ -1,6 +1,6 @@
 "use client"
 import NavBar from '../../components/general/NavBar';
-import { Plus, Building2, Loader2, Eye, Pencil, MailPlus, X, CheckCircle2 } from 'lucide-react';
+import { Plus, Building2, Loader2, Eye, Pencil, MailPlus, X, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/services/api';
 import { useUIStore } from '@/stores/ui-store';
@@ -34,9 +34,8 @@ const STATUS_LABEL: Record<string, string> = {
     maintenance: 'Maintenance',
 };
 
-const UNIT_BASED = ['apartment', 'studio', 'commercial'];
+const UNIT_BASED = ['apartment', 'studio', 'commercial', 'flat'];
 
-// ─── Invite Tenant Form ───────────────────────────────────────────────────────
 interface InviteFormProps {
     property: Property;
     onSuccess: () => void;
@@ -60,7 +59,7 @@ function InviteForm({ property, onSuccess }: InviteFormProps) {
             await apiClient.post('/leases/invite', {
                 propertyId: property.id,
                 tenantEmail,
-                unit: hasUnits ? unit : undefined,
+                unitId: hasUnits ? unit : undefined,
                 startDate,
                 endDate,
                 annualRent,
@@ -95,7 +94,7 @@ function InviteForm({ property, onSuccess }: InviteFormProps) {
                         <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
                         <SelectContent>
                             {property.units!.map(u => (
-                                <SelectItem key={u} value={u}>{u}</SelectItem>
+                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -132,7 +131,6 @@ function InviteForm({ property, onSuccess }: InviteFormProps) {
     );
 }
 
-// ─── View Property Panel ──────────────────────────────────────────────────────
 interface ViewPropertyPanelProps {
     property: Property;
     onClose: () => void;
@@ -141,43 +139,39 @@ interface ViewPropertyPanelProps {
 function ViewPropertyPanel({ property, onClose }: ViewPropertyPanelProps) {
     const [showInviteForm, setShowInviteForm] = useState(false);
 
-    // Fetch full property details (with leases) when the panel opens
     const { data: detail, isLoading } = useQuery<Property>({
         queryKey: ['property', property.id],
         queryFn: () => apiClient.get<Property>(`/properties/${property.id}`),
     });
 
-    const p = detail ?? property;
-    const hasUnits = UNIT_BASED.includes(p.propertyType) && (p.units?.length ?? 0) > 0;
+    const p = detail || property;
+    const hasUnits = (p.units?.length ?? 0) > 0;
     const activeLeases = (p.leases ?? []).filter(l => l.status === 'active' || l.status === 'pending_acceptance');
-
-    // Build a map of unit → active lease for quick lookup
     const unitLeaseMap: Record<string, Lease | undefined> = {};
     if (hasUnits) {
         for (const lease of activeLeases) {
-            if (lease.unit) unitLeaseMap[lease.unit] = lease;
+            if (lease.unitId) unitLeaseMap[lease.unitId] = lease;
         }
     }
 
+    const fmt = (n?: number) => n ? `₦${Number(n).toLocaleString()}` : null;
+
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-
-            {/* Panel */}
             <div className="relative z-10 w-full max-w-xl bg-white h-full shadow-2xl flex flex-col overflow-hidden">
+
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-indigo-500">
-                    <div>
-                        <h2 className="text-white font-bold text-lg">{p.addressLine1}</h2>
-                        <p className="text-indigo-200 text-sm capitalize">{p.propertyType} · {p.city}, {p.state}</p>
+                <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-indigo-500 shrink-0 text-white">
+                    <div className="min-w-0 pr-4">
+                        <h2 className="font-bold text-lg leading-tight truncate">{p.name || p.addressLine1}</h2>
+                        <p className="opacity-80 text-sm capitalize mt-0.5">{p.propertyType} · {p.city}, {p.state}</p>
                     </div>
-                    <button onClick={onClose} className="text-indigo-200 hover:text-white transition-colors">
+                    <button onClick={onClose} className="opacity-80 hover:opacity-100 transition-opacity shrink-0 cursor-pointer">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Body */}
                 <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
                     {isLoading && (
                         <div className="flex justify-center py-8">
@@ -185,47 +179,67 @@ function ViewPropertyPanel({ property, onClose }: ViewPropertyPanelProps) {
                         </div>
                     )}
 
-                    {/* Stats row */}
+                    {p.images && p.images.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                            {p.images.map((img, i) => (
+                                <img
+                                    key={i}
+                                    src={img}
+                                    alt={`Property image ${i + 1}`}
+                                    className="h-24 w-32 object-cover rounded-lg shrink-0 border border-gray-100"
+                                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                            ))}
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-3 gap-3">
-                        <div className="bg-indigo-50 rounded-xl p-4 text-center">
-                            <p className="text-xl font-bold text-indigo-700">₦{(p.rentAmount / 1000).toFixed(0)}k</p>
-                            <p className="text-xs text-indigo-400 mt-1">Annual rent</p>
+                        <div className="bg-indigo-50 rounded-xl p-3 text-center">
+                            <p className="text-lg font-bold text-indigo-700">
+                                {p.rentAmount ? `₦${(Number(p.rentAmount)).toLocaleString()}` : '—'}
+                            </p>
+                            <p className="text-[11px] text-indigo-400 mt-0.5">Annual Rent</p>
                         </div>
-                        <div className="bg-indigo-50 rounded-xl p-4 text-center">
-                            <p className="text-xl font-bold text-indigo-700">{hasUnits ? p.units!.length : 1}</p>
-                            <p className="text-xs text-indigo-400 mt-1">{hasUnits ? 'Total units' : 'Unit'}</p>
+                        <div className="bg-indigo-50 rounded-xl p-3 text-center">
+                            <p className="text-lg font-bold text-indigo-700">{hasUnits ? p.units?.length : (p.bedrooms ?? '—')}</p>
+                            <p className="text-[11px] text-indigo-400 mt-0.5">{hasUnits ? 'Total units' : 'Bedrooms'}</p>
                         </div>
-                        <div className="bg-indigo-50 rounded-xl p-4 text-center">
-                            <p className="text-xl font-bold text-indigo-700">{activeLeases.length}</p>
-                            <p className="text-xs text-indigo-400 mt-1">Active leases</p>
+                        <div className="bg-indigo-50 rounded-xl p-3 text-center">
+                            <p className="text-lg font-bold text-indigo-700">{activeLeases.length}</p>
+                            <p className="text-[11px] text-indigo-400 mt-0.5">Active leases</p>
                         </div>
                     </div>
 
-                    {/* Units overview */}
+                    <div>
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Location</h3>
+                        <p className="text-sm text-gray-700">{p.addressLine1}{p.addressLine2 ? `, ${p.addressLine2}` : ''}</p>
+                        <p className="text-sm text-gray-500">{p.city}, {p.state} {p.zipCode}</p>
+                    </div>
+
                     {hasUnits && (
                         <div>
-                            <h3 className="text-sm font-bold text-gray-700 mb-3">Units</h3>
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+                                <Building2 className="w-3 h-3" />
+                                Units & Tenants
+                            </h3>
                             <div className="space-y-2">
-                                {p.units!.map((u) => {
-                                    const lease = unitLeaseMap[u];
+                                {p.units?.map((u) => {
+                                    const lease = unitLeaseMap[u.id];
                                     return (
-                                        <div key={u} className="flex items-center justify-between py-2.5 px-3 rounded-lg border border-gray-100 bg-gray-50">
-                                            <span className="text-sm font-medium text-gray-700">{u}</span>
-                                            {lease ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-gray-500">
-                                                        {lease.tenant
-                                                            ? `${lease.tenant.firstName} ${lease.tenant.lastName}`
-                                                            : lease.tenantEmail ?? '—'}
+                                        <div key={u.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-white transition-all group">
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{u.name}</p>
+                                                <p className="text-[11px] text-gray-400">{u.bedrooms} Bed · {u.bathrooms} Bath</p>
+                                            </div>
+                                            <div className="text-right">
+                                                {lease ? (
+                                                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                                        {lease.tenant ? `${lease.tenant.firstName}` : 'In Lease'}
                                                     </span>
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium
-                                                        ${lease.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                        {lease.status === 'active' ? 'Occupied' : 'Pending'}
-                                                    </span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-xs px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200">Vacant</span>
-                                            )}
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">Vacant</span>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -233,46 +247,21 @@ function ViewPropertyPanel({ property, onClose }: ViewPropertyPanelProps) {
                         </div>
                     )}
 
-                    {/* Active Leases (non-unit based) */}
-                    {!hasUnits && activeLeases.length > 0 && (
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-700 mb-3">Current Tenant</h3>
-                            {activeLeases.map((lease) => (
-                                <div key={lease.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg border border-gray-100 bg-gray-50">
-                                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-800">
-                                            {lease.tenant
-                                                ? `${lease.tenant.firstName} ${lease.tenant.lastName}`
-                                                : lease.tenantEmail ?? 'Tenant'}
-                                        </p>
-                                        <p className="text-xs text-gray-400">
-                                            Until {new Date(lease.endDate).toLocaleDateString()}
-                                        </p>
-                                    </div>
+                    <div className="pt-4">
+                        <div className="border border-dashed border-indigo-200 rounded-2xl p-5 hover:border-indigo-400 transition-colors bg-indigo-50/20">
+                            <div className="flex items-center justify-between cursor-pointer" onClick={() => setShowInviteForm(!showInviteForm)}>
+                                <div className="flex items-center gap-2">
+                                    <MailPlus className="w-4 h-4 text-indigo-600" />
+                                    <span className="text-sm font-bold text-indigo-900 text-indigo-700">Invite a Tenant</span>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Invite Tenant */}
-                    <div className="border border-dashed border-indigo-200 rounded-xl p-4">
-                        <div
-                            className="flex items-center justify-between cursor-pointer"
-                            onClick={() => setShowInviteForm(!showInviteForm)}
-                        >
-                            <div className="flex items-center gap-2">
-                                <MailPlus className="w-4 h-4 text-indigo-500" />
-                                <span className="text-sm font-semibold text-indigo-700">Invite Tenant</span>
+                                <Button variant="ghost" size="sm" className="h-7 text-indigo-500 font-bold text-[10px] uppercase">
+                                    {showInviteForm ? 'Close' : 'Invite'}
+                                </Button>
                             </div>
-                            <span className="text-indigo-400 text-xs">{showInviteForm ? 'Cancel' : 'Expand'}</span>
+                            {showInviteForm && (
+                                <InviteForm property={p} onSuccess={() => setShowInviteForm(false)} />
+                            )}
                         </div>
-                        {showInviteForm && (
-                            <InviteForm
-                                property={p}
-                                onSuccess={() => setShowInviteForm(false)}
-                            />
-                        )}
                     </div>
                 </div>
             </div>
@@ -280,8 +269,8 @@ function ViewPropertyPanel({ property, onClose }: ViewPropertyPanelProps) {
     );
 }
 
-// ─── Main Properties Component ────────────────────────────────────────────────
 const Properties = () => {
+    const queryClient = useQueryClient();
     const { openModal } = useUIStore();
     const [viewProperty, setViewProperty] = useState<Property | null>(null);
 
@@ -289,6 +278,23 @@ const Properties = () => {
         queryKey: ['properties'],
         queryFn: () => apiClient.get<Property[]>('/properties'),
     });
+
+    const deleteMutation = useMutation({
+        mutationFn: (propertyId: string) => apiClient.delete(`/properties/${propertyId}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['properties'] });
+            toast.success('Property deleted successfully');
+        },
+        onError: (err: any) => {
+            toast.error(err.message || 'Failed to delete property');
+        }
+    });
+
+    const handleDelete = (property: Property) => {
+        if (confirm(`Are you sure you want to delete ${property.name}? This will also delete all associated units and data.`)) {
+            deleteMutation.mutate(property.id);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -298,20 +304,10 @@ const Properties = () => {
         );
     }
 
-    if (error) {
-        return (
-            <div className="flex h-[400px] flex-col items-center justify-center gap-4 text-center">
-                <p className="text-red-500 font-medium">Failed to load properties</p>
-                <Button onClick={() => window.location.reload()} variant="outline">Retry</Button>
-            </div>
-        );
-    }
-
     return (
         <>
-            <NavBar title="Properties" subtitle="Manage your properties" />
+            <NavBar title="Property Portfolio" subtitle="Manage your real estate assets" />
 
-            {/* View Property Side Panel */}
             {viewProperty && (
                 <ViewPropertyPanel
                     property={viewProperty}
@@ -319,88 +315,118 @@ const Properties = () => {
                 />
             )}
 
-            {/* Properties Table Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-start justify-between mb-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-8 py-6 border-b border-gray-50 flex items-center justify-between bg-gradient-to-br from-white to-gray-50/30">
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900">Property Management</h2>
-                        <p className="text-sm text-gray-400">Manage all your rental properties</p>
+                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Main Assets</h2>
+                        <p className="text-sm text-gray-400 mt-0.5">List of all your active property listings</p>
                     </div>
                     <Button
                         onClick={() => openModal('createProperty')}
-                        className="flex items-center gap-2"
+                        className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-100 rounded-xl px-6 h-11 font-bold gap-2 active:scale-95 transition-all"
                     >
-                        <Plus className="w-4 h-4" />
-                        Add Property
+                        <Plus className="w-5 h-5" />
+                        Add New Property
                     </Button>
                 </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-gray-100">
-                                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Property</th>
-                                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Address</th>
-                                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Rent/yr</th>
-                                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Units</th>
-                                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Status</th>
-                                <th className="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider pb-3">Actions</th>
+                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                                <th className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest px-8 py-5">Asset</th>
+                                <th className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest px-8 py-5">Location</th>
+                                <th className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest px-8 py-5">Annual Rent</th>
+                                <th className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest px-8 py-5">Structure</th>
+                                <th className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-widest px-8 py-5">Status</th>
+                                <th className="text-right text-[11px] font-bold text-gray-400 uppercase tracking-widest px-8 py-5">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {properties?.map((p: Property) => (
-                                <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                                    <td className="py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-indigo-50 rounded-lg flex items-center justify-center">
-                                                <Building2 className="w-4 h-4 text-indigo-500" />
+                        <tbody className="divide-y divide-gray-50">
+                            {properties && properties.length > 0 ? (
+                                properties.map((p: Property) => (
+                                    <tr key={p.id} className="hover:bg-gray-50/30 transition-all group">
+                                        <td className="px-8 py-6">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center group-hover:bg-indigo-100 transition-colors shadow-sm">
+                                                    <Building2 className="w-6 h-6 text-indigo-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[15px] font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{p.name}</p>
+                                                    <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">{p.propertyType}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-semibold text-gray-900">{p.addressLine1}</p>
-                                                <p className="text-xs text-gray-400 uppercase font-medium">{p.propertyType}</p>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <p className="text-sm text-gray-600 font-medium">{p.addressLine1}</p>
+                                            <p className="text-xs text-gray-400">{p.city}, {p.state}</p>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <p className="text-[15px] font-bold text-gray-900">₦{Number(p.rentAmount || 0).toLocaleString()}</p>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="text-sm text-gray-500 font-medium">
+                                                {UNIT_BASED.includes(p.propertyType) && p.units?.length
+                                                    ? `${p.units.length} Unit${p.units.length > 1 ? 's' : ''}`
+                                                    : p.bedrooms + ' Bed Asset'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border shadow-sm
+                                                ${STATUS_STYLES[p.status] ?? STATUS_STYLES.available}`}>
+                                                {STATUS_LABEL[p.status] ?? p.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setViewProperty(p)}
+                                                    className="h-10 w-10 p-0 text-indigo-600 hover:bg-indigo-50 rounded-xl"
+                                                >
+                                                    <Eye className="w-5 h-5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openModal('editProperty', p)}
+                                                    className="h-10 w-10 p-0 text-gray-500 hover:bg-gray-100 rounded-xl"
+                                                >
+                                                    <Pencil className="w-5 h-5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDelete(p)}
+                                                    disabled={deleteMutation.isPending}
+                                                    className="h-10 w-10 p-0 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl"
+                                                >
+                                                    {deleteMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                                </Button>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 text-sm text-gray-600">{p.city}, {p.state}</td>
-                                    <td className="py-4 text-sm font-semibold text-gray-900">
-                                        ₦{Number(p.rentAmount).toLocaleString()}
-                                    </td>
-                                    <td className="py-4 text-sm text-gray-500">
-                                        {UNIT_BASED.includes(p.propertyType) && p.units?.length
-                                            ? `${p.units.length} unit${p.units.length > 1 ? 's' : ''}`
-                                            : '—'}
-                                    </td>
-                                    <td className="py-4">
-                                        <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${STATUS_STYLES[p.status] ?? STATUS_STYLES.available}`}>
-                                            {STATUS_LABEL[p.status] ?? p.status}
-                                        </span>
-                                    </td>
-                                    <td className="py-4 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setViewProperty(p)}
-                                                className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                                            >
-                                                <Eye className="w-3.5 h-3.5" /> View
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openModal('editProperty', p)}
-                                                className="text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1"
-                                            >
-                                                <Pencil className="w-3.5 h-3.5" /> Edit
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {properties?.length === 0 && (
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
                                 <tr>
-                                    <td colSpan={6} className="py-12 text-center text-gray-400">
-                                        No properties found. Add your first property to get started.
+                                    <td colSpan={6} className="py-24 text-center">
+                                        <div className="flex flex-col items-center justify-center max-w-sm mx-auto animate-in fade-in zoom-in duration-500">
+                                            <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-gray-100 border border-gray-100">
+                                                <Building2 className="w-12 h-12 text-indigo-100" />
+                                            </div>
+                                            <h3 className="text-2xl font-bold text-gray-900 mb-3">No Properties found</h3>
+                                            <p className="text-sm text-gray-400 mb-10 leading-relaxed">
+                                                Your property portfolio is waiting for its first listing. Add a property to start tracking leases, vacancies, and maintenance.
+                                            </p>
+                                            <Button
+                                                onClick={() => openModal('createProperty')}
+                                                className="bg-indigo-600 hover:bg-indigo-700 h-12 px-10 rounded-2xl font-bold shadow-xl shadow-indigo-100 gap-3 group transition-all active:scale-95"
+                                            >
+                                                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                                                Register First Property
+                                            </Button>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
@@ -409,11 +435,9 @@ const Properties = () => {
                 </div>
             </div>
 
-            {/* Modals */}
             <Modal type="createProperty" title="Add New Property" description="Enter the details of your new rental property.">
                 <PropertyForm />
             </Modal>
-
             <Modal type="editProperty" title="Edit Property" description="Update the information for this property.">
                 <PropertyForm />
             </Modal>

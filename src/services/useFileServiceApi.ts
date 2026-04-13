@@ -1,6 +1,6 @@
 import { UploadDocumentPayload, UploadDocumentResponse, DocumentRecord } from '@/types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_BASE = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'}/api/v1`;
 
 /**
  * Retrieves the JWT from wherever your auth store keeps it.
@@ -8,7 +8,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
  */
 function getAuthToken(): string {
   if (typeof window === 'undefined') return '';
-  return localStorage.getItem('access_token') ?? '';
+  return localStorage.getItem('auth_token') ?? '';
 }
 
 function authHeaders(): HeadersInit {
@@ -28,7 +28,7 @@ export async function uploadDocument(
   if (payload.propertyId) form.append('propertyId', payload.propertyId);
   if (payload.accessLevel) form.append('accessLevel', payload.accessLevel);
 
-  const res = await fetch(`${API_BASE}/documents/upload`, {
+  const res = await fetch(`${API_BASE}/files/upload`, {
     method: 'POST',
     headers: authHeaders(), // NOTE: do NOT set Content-Type — browser sets it with boundary
     body: form,
@@ -46,7 +46,7 @@ export async function uploadDocument(
 // Fetch document metadata by ID
 // ---------------------------------------------------------------------------
 export async function fetchDocument(id: string): Promise<DocumentRecord> {
-  const res = await fetch(`${API_BASE}/documents/${id}`, {
+  const res = await fetch(`${API_BASE}/files/${id}`, {
     headers: authHeaders(),
   });
 
@@ -58,7 +58,7 @@ export async function fetchDocument(id: string): Promise<DocumentRecord> {
 // Fetch all documents for a lease
 // ---------------------------------------------------------------------------
 export async function fetchDocumentsByLease(leaseId: string): Promise<DocumentRecord[]> {
-  const res = await fetch(`${API_BASE}/documents/lease/${leaseId}`, {
+  const res = await fetch(`${API_BASE}/files/lease/${leaseId}`, {
     headers: authHeaders(),
   });
 
@@ -70,7 +70,7 @@ export async function fetchDocumentsByLease(leaseId: string): Promise<DocumentRe
 // Fetch all documents for a property
 // ---------------------------------------------------------------------------
 export async function fetchDocumentsByProperty(propertyId: string): Promise<DocumentRecord[]> {
-  const res = await fetch(`${API_BASE}/documents/property/${propertyId}`, {
+  const res = await fetch(`${API_BASE}/files/property/${propertyId}`, {
     headers: authHeaders(),
   });
 
@@ -82,7 +82,7 @@ export async function fetchDocumentsByProperty(propertyId: string): Promise<Docu
 // Download a document (triggers browser save-as dialog)
 // ---------------------------------------------------------------------------
 export async function downloadDocument(id: string, fileName: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/documents/${id}/download`, {
+  const res = await fetch(`${API_BASE}/files/${id}/download`, {
     headers: authHeaders(),
   });
 
@@ -101,7 +101,7 @@ export async function downloadDocument(id: string, fileName: string): Promise<vo
 // Delete a document
 // ---------------------------------------------------------------------------
 export async function deleteDocument(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/documents/${id}`, {
+  const res = await fetch(`${API_BASE}/files/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
