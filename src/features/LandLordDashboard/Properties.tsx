@@ -159,7 +159,7 @@ function ViewPropertyPanel({ property, onClose }: ViewPropertyPanelProps) {
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-xl bg-white h-full shadow-2xl flex flex-col overflow-hidden">
+            <div className="relative z-10 w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col overflow-hidden">
 
                 {/* Header */}
                 <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-600 to-indigo-500 shrink-0 text-white">
@@ -435,7 +435,7 @@ const Properties = () => {
                 </div>
             </div>
 
-            <Modal type="createProperty" title="Add New Property" description="Enter the details of your new rental property.">
+            <Modal type="createProperty" title="Add New Property" description="Enter the details of your new rental property." size='lg'>
                 <PropertyForm />
             </Modal>
             <Modal type="editProperty" title="Edit Property" description="Update the information for this property.">

@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import { QueryProvider } from "@/lib/query-client";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -32,6 +33,7 @@ export default function RootLayout({
         <QueryProvider>
           {children}
         </QueryProvider>
+        <Toaster />
       </body>
     </html>
   );

@@ -1,11 +1,11 @@
 'use client'
 
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/services/api';
 import { Loader2, Plus, Building2, CheckCircle2, DollarSign, AlertTriangle } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { useUIStore } from '@/stores/ui-store';
 import { useAuthStore } from '@/stores/auth';
 import NavBar from '@/components/general/NavBar';
 
@@ -13,7 +13,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 const LandlordDashboard = () => {
     const { user } = useAuthStore();
-    const { openModal } = useUIStore();
 
     // Fetch summary stats
     const { data: summary, isLoading: isSummaryLoading } = useQuery({
@@ -102,9 +101,11 @@ const LandlordDashboard = () => {
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 mb-2">No properties found</h2>
                     <p className="text-gray-500 max-w-sm mb-6">You haven't added any properties yet. Start by adding your first property to track income and manage tenants.</p>
-                    <Button onClick={() => openModal('createProperty')} className="gap-2">
-                        <Plus className="w-4 h-4" />
-                        Add First Property
+                    <Button asChild className="gap-2">
+                        <Link href="/landlord-dashboard/properties">
+                            <Plus className="w-4 h-4" />
+                            Add First Property
+                        </Link>
                     </Button>
                 </div>
             </>
