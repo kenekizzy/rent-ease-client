@@ -38,7 +38,7 @@ function AuthCallbackContent() {
     initialized.current = true;
 
     const handleCallback = async () => {
-      const accessToken = searchParams.get('accessToken');
+      const accessToken = searchParams.get('code') || searchParams.get('accessToken');
       if (!accessToken) {
         toast.error('Authentication failed: No token received');
         router.push('/login');
