@@ -38,16 +38,19 @@ function AuthCallbackContent() {
     initialized.current = true;
 
     const handleCallback = async () => {
-      const accessToken = searchParams.get('code') || searchParams.get('accessToken');
-      if (!accessToken) {
+      const code = searchParams.get('code');
+      if (!code) {
         toast.error('Authentication failed: No token received');
         router.push('/login');
         return;
       }
 
       try {
-        localStorage.setItem('auth_token', accessToken);
-        const user = await apiClient.get<any>('/auth/me');
+        const response = await apiClient.get<any>('/auth/google/callback', {
+          params: { code }
+        });
+        
+        const { accessToken, user } = response;
         login(user, accessToken);
         
         if (user.role === 'undetermined') {
